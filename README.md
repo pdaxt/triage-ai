@@ -391,8 +391,8 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 **Pranjal Gupta**
 
-- [LinkedIn](https://linkedin.com/in/pranjalgupta)
-- [Email](mailto:pran@dataxlr8.ai)
+- [LinkedIn](https://linkedin.com/in/pran-dataxlr8)
+- [Email](mailto:pranjal.gupta@dataxlr8.ai)
 
 ---
 
