@@ -1,6 +1,6 @@
 # TriageAI
 
-> **Intelligent Patient Triage System** — AI-powered symptom assessment and doctor routing that transforms patient-doctor consultations.
+> **Intelligent Patient Triage System** — AI-powered symptom collection, severity assessment, and doctor routing that transforms virtual consultations and enables rapid digital prescriptions.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
@@ -26,11 +26,12 @@
 
 **TriageAI** is an AI-powered patient intake and triage system that:
 
-1. **Captures symptoms** through natural conversation (not forms)
-2. **Assesses severity** using clinically-validated algorithms + LLM reasoning
-3. **Routes patients** to the right doctor, specialty, or care level
-4. **Prioritizes queues** so urgent cases are seen first
-5. **Provides transparency** with full audit trails for compliance
+1. **Triages patient symptoms** through natural conversation (not forms)
+2. **Generates recommendations** using clinically-validated algorithms + LLM reasoning
+3. **Summarizes findings for doctors** before virtual consultation
+4. **Routes patients** to the right doctor, specialty, or care level
+5. **Enables rapid consultations** so doctors can issue digital prescriptions faster
+6. **Provides transparency** with full audit trails for compliance
 
 ### How It Works
 
@@ -44,11 +45,17 @@ Patient describes symptoms
     [Triage Engine]
     ├── Severity Score (1-5)
     ├── Urgency Flag
-    └── Specialty Match
+    ├── Specialty Match
+    └── AI Recommendations
+         ↓
+  [Doctor Summary Generator]
+    └── Pre-consultation briefing
          ↓
   Doctor Queue Assignment
          ↓
-    Consultation Ready
+    Rapid Virtual Consultation
+         ↓
+    Digital Prescription
 ```
 
 ---
@@ -59,8 +66,10 @@ Patient describes symptoms
 |---------|-------------|--------|
 | **Conversational Intake** | Natural language symptom collection | 🔨 Building |
 | **AI Triage Scoring** | Evidence-based severity assessment | 🔨 Building |
+| **Doctor Summaries** | AI-generated pre-consultation briefings | 🔨 Building |
 | **Smart Routing** | Match patients to right specialty | 📋 Planned |
 | **Priority Queue** | Urgent cases surface automatically | 📋 Planned |
+| **Digital Prescriptions** | Rapid Rx after virtual consultation | 📋 Planned |
 | **Audit Trail** | Every AI decision logged for compliance | 📋 Planned |
 | **Doctor Dashboard** | Real-time queue with patient context | 📋 Planned |
 | **Patient Portal** | Track status, estimated wait times | 📋 Planned |
@@ -192,6 +201,17 @@ With AI-assisted development:
 - **Week 4:** Production deployment + monitoring
 
 **Speed without sacrificing quality.**
+
+### Business-First Philosophy
+
+This isn't an academic exercise. It's built for **commercial outcomes**:
+
+- **Australia first, then global** — Designed for Australian telehealth regulations with clear path to international markets
+- **Revenue from day one** — Integrates with existing virtual consultation platforms
+- **100M+ patient opportunity** — Addressing the global telehealth triage gap
+- **Defensible moat** — Clinical validation data + provider relationships
+
+**Technical excellence in service of business impact.**
 
 ---
 
