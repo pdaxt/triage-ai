@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Anthropic from '@anthropic-ai/sdk';
 
 // Shared conversation store (will reset between cold starts)
 const conversations = new Map<string, any>();
@@ -138,10 +137,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const hasRedFlags = redFlags.length > 0;
 
   try {
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-
     // Build conversation context
     const conversation = conversations.get(conversationId) || {
       messages: [],
@@ -151,22 +146,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Add user message to history
     conversation.messages.push({ role: 'user', content: message });
 
-    // If red flags detected, add context for immediate triage
-    const userMessageWithContext = hasRedFlags
-      ? `${message}\n\n[SYSTEM: RED FLAGS DETECTED - ${redFlags.map(f => f.condition).join(', ')}. Provide immediate ATS1/ATS2 triage.]`
-      : message;
-
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: conversation.messages.map((m: any) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
+    // Build messages for Groq API
+    const groqMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...conversation.messages.map((m: any) => ({
+        role: m.role,
+        content: m.role === 'user' && hasRedFlags && m.content === message
+          ? `${m.content}\n\n[SYSTEM: RED FLAGS DETECTED - ${redFlags.map(f => f.condition).join(', ')}. Provide immediate ATS1/ATS2 triage.]`
+          : m.content,
       })),
+    ];
+
+    // Call Groq API (free, fast Llama)
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: groqMessages,
+        max_tokens: 1024,
+        temperature: 0.7,
+      }),
     });
 
-    const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Groq API error: ${error}`);
+    }
+
+    const data = await response.json();
+    const responseText = data.choices[0]?.message?.content || '';
 
     // Parse JSON response
     let parsed;

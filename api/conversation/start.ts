@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Anthropic from '@anthropic-ai/sdk';
 
 // In-memory store for serverless (will reset between cold starts - fine for demo)
 const conversations = new Map<string, any>();
