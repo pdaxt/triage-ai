@@ -202,8 +202,8 @@ async function testFullAssessment() {
   console.log('\n━━━ FULL ATS ASSESSMENT TEST ━━━\n');
 
   // Check if API key is available
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log('⚠️  ANTHROPIC_API_KEY not set. Skipping full assessment tests.');
+  if (!process.env.GROQ_API_KEY) {
+    console.log('⚠️  GROQ_API_KEY not set. Skipping full assessment tests.');
     console.log('   Set the environment variable to run full tests.\n');
     return;
   }

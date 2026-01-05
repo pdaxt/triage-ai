@@ -20,7 +20,7 @@ This document outlines the production readiness considerations for deploying Tri
 |-------|--------|-------------|
 | Layer 1: Keyword Detection | ✅ Complete | <1ms deterministic red flag detection |
 | Layer 2: Clinical Rules | ✅ Complete | Age-adjusted thresholds, vital signs |
-| Layer 3: LLM Reasoning | ✅ Complete | Claude API with fallback |
+| Layer 3: LLM Reasoning | ✅ Complete | LLM API with fallback |
 | Layer 4: Safety Envelope | ✅ Complete | Prevents LLM under-triage |
 
 ### 1.2 Safety Guarantees
@@ -72,7 +72,7 @@ This document outlines the production readiness considerations for deploying Tri
 | Consent for collection | ⚠️ Required | User consent flow needed |
 | Purpose limitation | ⚠️ Required | Privacy policy documentation |
 | Data security | ✅ Designed | Encryption at rest/transit |
-| Cross-border transfer | ⚠️ Required | Claude API is US-based |
+| Cross-border transfer | ⚠️ Required | LLM API may be US-based |
 | Access and correction | ⚠️ Required | Data access endpoints needed |
 | Breach notification | ⚠️ Required | Incident response plan needed |
 

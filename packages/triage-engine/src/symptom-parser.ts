@@ -1,6 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { Symptom, SymptomSchema } from './types.js';
+
+// LLM client interface - supports multiple backends
+interface LLMClient {
+  messages: {
+    create: (params: any) => Promise<any>;
+  };
+}
 
 const ParsedSymptomsSchema = z.object({
   symptoms: z.array(SymptomSchema),
@@ -23,17 +29,57 @@ Do not diagnose - only parse what the patient says.
 Respond with JSON only.`;
 
 export class SymptomParser {
-  private client: Anthropic;
+  private client: LLMClient;
+  private model: string;
+  private apiKey: string;
 
   constructor(apiKey?: string) {
-    this.client = new Anthropic({ apiKey });
+    this.apiKey = apiKey || process.env.GROQ_API_KEY || '';
+    this.model = 'llama-3.3-70b-versatile';
+    this.client = this.createGroqClient();
+  }
+
+  private createGroqClient(): LLMClient {
+    const apiKey = this.apiKey;
+    const model = this.model;
+
+    return {
+      messages: {
+        create: async (params: any) => {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'system', content: params.system },
+                ...params.messages,
+              ],
+              max_tokens: params.max_tokens || 1024,
+              temperature: 0.7,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return {
+            content: [{ type: 'text', text: data.choices[0].message.content }],
+          };
+        },
+      },
+    };
   }
 
   async parse(rawInput: string): Promise<{ symptoms: Symptom[]; additionalContext?: string }> {
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
       system: SYMPTOM_PARSER_PROMPT,
+      max_tokens: 1024,
       messages: [
         {
           role: 'user',

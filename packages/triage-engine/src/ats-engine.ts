@@ -3,14 +3,21 @@
  *
  * This is the core triage engine that combines:
  * 1. Deterministic guardrails (rules-based safety layer)
- * 2. LLM reasoning (Claude for complex interpretation)
+ * 2. LLM reasoning (for complex interpretation)
  * 3. Safety envelope (post-LLM validation)
  *
  * The architecture ensures that life-threatening conditions are NEVER missed,
  * while leveraging LLM capabilities for nuanced clinical reasoning.
+ *
+ * Supports multiple LLM backends: Groq, Ollama, OpenAI-compatible APIs
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+// LLM client interface - supports multiple backends
+interface LLMClient {
+  messages: {
+    create: (params: any) => Promise<any>;
+  };
+}
 import { z } from 'zod';
 import {
   ATSCategory,
@@ -89,14 +96,55 @@ You must respond with valid JSON only:
  * Hybrid architecture combining deterministic rules with LLM reasoning
  */
 export class ATSTriageEngine {
-  private client: Anthropic;
+  private client: LLMClient;
   private guardrails: GuardrailsEngine;
   private model: string;
+  private apiKey: string;
 
-  constructor(options?: { apiKey?: string; model?: string }) {
-    this.client = new Anthropic({ apiKey: options?.apiKey });
+  constructor(options?: { apiKey?: string; model?: string; client?: LLMClient }) {
+    this.apiKey = options?.apiKey || process.env.GROQ_API_KEY || '';
+    this.model = options?.model || 'llama-3.3-70b-versatile';
     this.guardrails = guardrailsEngine;
-    this.model = options?.model || 'claude-sonnet-4-20250514';
+
+    // Use provided client or create Groq-compatible client
+    this.client = options?.client || this.createGroqClient();
+  }
+
+  private createGroqClient(): LLMClient {
+    const apiKey = this.apiKey;
+    const model = this.model;
+
+    return {
+      messages: {
+        create: async (params: any) => {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'system', content: params.system },
+                ...params.messages,
+              ],
+              max_tokens: params.max_tokens || 1024,
+              temperature: 0.7,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return {
+            content: [{ type: 'text', text: data.choices[0].message.content }],
+          };
+        },
+      },
+    };
   }
 
   /**
@@ -374,12 +422,50 @@ export class ATSTriageEngine {
  * Creates pre-consultation briefings for clinicians
  */
 export class ATSDoctorSummaryGenerator {
-  private client: Anthropic;
+  private client: LLMClient;
   private model: string;
+  private apiKey: string;
 
-  constructor(options?: { apiKey?: string; model?: string }) {
-    this.client = new Anthropic({ apiKey: options?.apiKey });
-    this.model = options?.model || 'claude-sonnet-4-20250514';
+  constructor(options?: { apiKey?: string; model?: string; client?: LLMClient }) {
+    this.apiKey = options?.apiKey || process.env.GROQ_API_KEY || '';
+    this.model = options?.model || 'llama-3.3-70b-versatile';
+
+    // Use provided client or create Groq-compatible client
+    this.client = options?.client || this.createGroqClient();
+  }
+
+  private createGroqClient(): LLMClient {
+    const apiKey = this.apiKey;
+    const model = this.model;
+
+    return {
+      messages: {
+        create: async (params: any) => {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: params.messages,
+              max_tokens: params.max_tokens || 512,
+              temperature: 0.7,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return {
+            content: [{ type: 'text', text: data.choices[0].message.content }],
+          };
+        },
+      },
+    };
   }
 
   async generate(

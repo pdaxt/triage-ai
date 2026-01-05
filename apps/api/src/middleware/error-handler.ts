@@ -22,8 +22,8 @@ export function errorHandler(
     return;
   }
 
-  // Anthropic API errors
-  if (err.message?.includes('ANTHROPIC') || err.message?.includes('API')) {
+  // LLM API errors
+  if (err.message?.includes('GROQ') || err.message?.includes('API')) {
     res.status(503).json({
       error: 'AI_SERVICE_ERROR',
       message: 'AI service is temporarily unavailable. Please try again.',

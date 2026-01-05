@@ -149,7 +149,7 @@ The system implements 10+ red flag conditions that trigger immediate escalation:
 | **Styling** | Tailwind CSS | Rapid UI development, consistent design |
 | **Animation** | Framer Motion | Smooth, professional animations |
 | **Backend** | Node.js + Express | Async-first, fast development |
-| **LLM** | Claude API (Anthropic) | Best reasoning, safety focus |
+| **LLM** | Groq (Llama 3.3 70B) | Fast inference, free tier |
 | **Local LLM** | Ollama | Development without API costs |
 | **Validation** | Zod | Runtime type validation |
 | **Monorepo** | npm workspaces + Turbo | Fast builds, code sharing |
@@ -202,7 +202,7 @@ triage-ai/
 
 - Node.js 20+
 - npm 10+
-- Ollama (for local LLM) or Anthropic API key
+- Ollama (for local LLM) or Groq API key (free)
 
 ### Installation
 

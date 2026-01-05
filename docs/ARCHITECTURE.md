@@ -56,7 +56,7 @@ TriageAI follows a **microservices architecture** designed for healthcare-grade 
           │                        ▼                        │
           │              ┌─────────────────────┐            │
           │              │    AI LAYER         │            │
-          │              │    (Claude API)     │            │
+          │              │    (LLM API)        │            │
           │              ├─────────────────────┤            │
           │              │  • Symptom Parser   │            │
           │              │  • Triage Reasoner  │            │
@@ -152,7 +152,7 @@ GET  /v1/triage/audit/:id      # Get audit trail
 │     ├── Calculate base severity score                       │
 │     └── Identify specialty indicators                       │
 │                                                             │
-│  3. LLM REASONING (Claude API)                              │
+│  3. LLM REASONING (LLM API)                                 │
 │     ├── Complex/ambiguous cases only                        │
 │     ├── Consider symptom combinations                       │
 │     ├── Factor in patient history                           │
@@ -210,12 +210,12 @@ def calculate_priority(patient):
 
 ## 3. AI Layer Architecture
 
-### 3.1 Claude API Integration
+### 3.1 LLM API Integration
 
 **Model Selection:**
-- **Triage Reasoning:** Claude 3.5 Sonnet (balance of speed + accuracy)
-- **Symptom Parsing:** Claude 3 Haiku (fast, cost-effective)
-- **Summary Generation:** Claude 3.5 Sonnet (quality output)
+- **Production:** Groq API with Llama 3.3 70B (fast, free tier)
+- **Local Development:** Ollama with Llama 3.2 (offline capable)
+- **Flexible:** Supports any OpenAI-compatible API
 
 **Prompt Engineering:**
 ```
@@ -245,7 +245,7 @@ def calculate_priority(patient):
 ```
 
 **Fallback Strategy:**
-1. Primary: Claude API (Anthropic)
+1. Primary: LLM API (Groq/Ollama)
 2. Fallback: Rule-based triage (always available)
 3. Emergency: Surface to human immediately
 
@@ -553,7 +553,7 @@ npm run test:integration
 | Node.js | Python, Go | Async I/O, JS ecosystem, rapid development |
 | PostgreSQL | MongoDB, DynamoDB | HIPAA compliance, relational integrity |
 | Redis | Memcached | Pub/sub, sorted sets for queues |
-| Claude API | OpenAI, local models | Best reasoning, safety focus |
+| Groq/Llama | OpenAI, local models | Fast inference, free tier, safety focus |
 | AWS | GCP, Azure | Healthcare compliance, mature |
 | React | Vue, Svelte | Team expertise, ecosystem |
 

@@ -1,5 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { PatientIntake, TriageResult, DoctorSummary, DoctorSummarySchema } from './types.js';
+
+// LLM client interface - supports multiple backends
+interface LLMClient {
+  messages: {
+    create: (params: any) => Promise<any>;
+  };
+}
 
 const DOCTOR_SUMMARY_PROMPT = `You are a medical AI assistant preparing pre-consultation briefings for doctors.
 
@@ -19,19 +26,59 @@ Format your response as structured JSON that can be displayed in a doctor dashbo
 Be concise but thorough. Doctors are busy - every word must add value.`;
 
 export class DoctorSummaryGenerator {
-  private client: Anthropic;
+  private client: LLMClient;
+  private model: string;
+  private apiKey: string;
 
   constructor(apiKey?: string) {
-    this.client = new Anthropic({ apiKey });
+    this.apiKey = apiKey || process.env.GROQ_API_KEY || '';
+    this.model = 'llama-3.3-70b-versatile';
+    this.client = this.createGroqClient();
+  }
+
+  private createGroqClient(): LLMClient {
+    const apiKey = this.apiKey;
+    const model = this.model;
+
+    return {
+      messages: {
+        create: async (params: any) => {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'system', content: params.system },
+                ...params.messages,
+              ],
+              max_tokens: params.max_tokens || 2048,
+              temperature: 0.7,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return {
+            content: [{ type: 'text', text: data.choices[0].message.content }],
+          };
+        },
+      },
+    };
   }
 
   async generate(intake: PatientIntake, triageResult: TriageResult): Promise<DoctorSummary> {
     const briefingRequest = this.formatBriefingRequest(intake, triageResult);
 
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
       system: DOCTOR_SUMMARY_PROMPT,
+      max_tokens: 2048,
       messages: [
         {
           role: 'user',
