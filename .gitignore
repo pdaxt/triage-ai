@@ -33,6 +33,12 @@ npm-debug.log*
 coverage/
 .nyc_output/
 
+# E2E Tests (private - secret sauce)
+e2e/
+test-results/
+playwright.config.ts
+playwright-report/
+
 # Turbo
 .turbo/
 

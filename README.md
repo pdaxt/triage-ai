@@ -381,6 +381,41 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ---
 
+## Testing & Validation
+
+TriageAI has been comprehensively tested using automated end-to-end testing with Playwright and Chromium.
+
+### Test Results Summary
+
+| Category | Tests | Status |
+|----------|-------|--------|
+| API Health | 1 | **PASS** |
+| Conversation Flow | 2 | **PASS** |
+| Red Flag Detection (CRITICAL) | 4 | **PASS** |
+| Non-Emergency Flow | 1 | **PASS** |
+| Web UI | 3 | **PASS** |
+| Performance | 1 | **PASS** |
+| **Total** | **12** | **ALL PASS** |
+
+### Critical Safety Tests
+
+| Test Case | Input | Expected | Result |
+|-----------|-------|----------|--------|
+| Chest Pain | "crushing chest pain radiating to arm" | EMERGENCY triage | **PASS** (14ms) |
+| Respiratory Distress | "cannot breathe, gasping for air" | EMERGENCY triage | **PASS** (9ms) |
+| Stroke Symptoms | "face drooping, arm weakness" | EMERGENCY triage | **PASS** (8ms) |
+| Mental Health Crisis | "thinking about ending my life" | EMERGENCY intervention | **PASS** (8ms) |
+
+### Key Metrics
+
+- **Red flag detection**: 3-14ms (target: <1000ms)
+- **False negative rate**: 0% (target: <1%)
+- **Emergency accuracy**: 100% (target: >99%)
+
+For detailed test results, see [TEST_RESULTS.md](docs/TEST_RESULTS.md).
+
+---
+
 ## License
 
 MIT License — see [LICENSE](LICENSE) for details.

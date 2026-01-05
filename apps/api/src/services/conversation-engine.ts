@@ -116,6 +116,63 @@ export class ConversationEngine {
     // Add user message
     conversationStore.addMessage(conversationId, 'user', userMessage);
 
+    // CRITICAL: Check for red flags BEFORE LLM call (deterministic safety)
+    const redFlags = this.checkRedFlagKeywords(userMessage);
+    if (redFlags.length > 0) {
+      // Force immediate triage for red flag conditions
+      conversationStore.updateStage(conversationId, 'triaging');
+
+      const urgentMessage = `I understand you're experiencing ${redFlags.join(' and ').toLowerCase()}. This is a serious symptom that requires immediate medical attention. Please call emergency services (000) or go to your nearest emergency department immediately.`;
+      conversationStore.addMessage(conversationId, 'assistant', urgentMessage);
+
+      // Build emergency triage result
+      const emergencyResult = {
+        id: conversationId,
+        timestamp: new Date().toISOString(),
+        result: {
+          severity: 5,
+          urgency: 'EMERGENCY' as const,
+          confidence: 0.95,
+          redFlags: {
+            detected: true,
+            flags: redFlags.map(flag => ({
+              condition: flag,
+              evidence: userMessage,
+              action: 'CALL EMERGENCY SERVICES (000) IMMEDIATELY',
+            })),
+          },
+          specialtyMatch: ['Emergency Medicine'],
+          reasoning: `Red flag conditions detected: ${redFlags.join(', ')}. Immediate medical attention required.`,
+          recommendations: [
+            'Call emergency services (000) immediately',
+            'Do not drive yourself to the hospital',
+            'Stay calm and remain still',
+          ],
+        },
+        doctorSummary: {
+          headline: `URGENT: ${redFlags[0]} - Requires immediate attention`,
+          keySymptoms: redFlags,
+          severity: 5,
+          urgency: 'EMERGENCY',
+          redFlags: redFlags,
+          relevantHistory: [],
+          suggestedQuestions: ['What is the patient\'s medical history?', 'Any current medications?'],
+          differentialDiagnosis: redFlags,
+          triageReasoning: `Red flag symptoms detected requiring immediate emergency care.`,
+        },
+      };
+
+      conversationStore.setTriageResult(conversationId, emergencyResult);
+
+      return {
+        conversationId,
+        message: urgentMessage,
+        stage: 'complete',
+        isComplete: true,
+        triageResult: emergencyResult,
+      };
+    }
+
     // Build conversation history for Ollama
     const messages = this.buildMessageHistory(conversation, userMessage);
 
@@ -431,13 +488,13 @@ Respond with ONLY valid JSON in this exact format:
     const flags: string[] = [];
 
     const keywordPatterns = [
-      { pattern: /chest pain|chest tightness|chest pressure/, flag: 'Chest pain' },
-      { pattern: /can't breathe|hard to breathe|shortness of breath|gasping/, flag: 'Difficulty breathing' },
+      { pattern: /chest pain|chest tightness|chest pressure|crushing.*chest|radiating.*arm/, flag: 'Chest pain' },
+      { pattern: /can't breathe|cannot breathe|hard to breathe|shortness of breath|gasping|difficulty breathing/, flag: 'Difficulty breathing' },
       { pattern: /worst headache|thunderclap headache|sudden severe headache/, flag: 'Sudden severe headache' },
       { pattern: /passed out|fainted|lost consciousness|blacked out/, flag: 'Loss of consciousness' },
-      { pattern: /face droop|arm weak|slurred speech|can't speak|one side/, flag: 'Possible stroke symptoms' },
+      { pattern: /face droop|face.*droop|arm weak|arm.*weak|slurred speech|can't speak|one side|stroke/, flag: 'Possible stroke symptoms' },
       { pattern: /can't swallow|throat closing|swelling.*throat/, flag: 'Possible anaphylaxis' },
-      { pattern: /want to die|kill myself|suicide|self.?harm/, flag: 'Suicidal ideation' },
+      { pattern: /want to die|kill myself|suicide|self.?harm|ending my life|end my life/, flag: 'Suicidal ideation' },
       { pattern: /heavy bleeding|won't stop bleeding|blood everywhere/, flag: 'Severe bleeding' },
       { pattern: /confused|don't know where|altered mental/, flag: 'Altered mental status' },
     ];
