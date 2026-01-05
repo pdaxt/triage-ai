@@ -33,11 +33,20 @@ npm-debug.log*
 coverage/
 .nyc_output/
 
-# E2E Tests (private - secret sauce)
+# E2E Tests (private)
 e2e/
 test-results/
 playwright.config.ts
 playwright-report/
+
+# Core Engine Logic (proprietary IP)
+packages/triage-engine/src/guardrails.ts
+packages/triage-engine/src/ats-engine.ts
+packages/triage-engine/src/clinical-rules.ts
+
+# API Service Implementation (proprietary)
+apps/api/src/services/conversation-engine.ts
+apps/api/src/services/triage-service.ts
 
 # Turbo
 .turbo/
