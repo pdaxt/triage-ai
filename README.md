@@ -425,9 +425,11 @@ MIT License — see [LICENSE](LICENSE) for details.
 ## Author
 
 **Pranjal Gupta**
+*Founder @ DataXLR8.ai | Building AI products that actually work*
 
-- [LinkedIn](https://linkedin.com/in/pran-dataxlr8)
-- [Email](mailto:pranjal.gupta@dataxlr8.ai)
+[![GitHub](https://img.shields.io/badge/GitHub-pdaxt-181717?logo=github)](https://github.com/pdaxt)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-17.8K_followers-0A66C2?logo=linkedin)](https://linkedin.com/in/pran-dataxlr8)
+[![Email](https://img.shields.io/badge/Email-pranjal.gupta%40dataxlr8.ai-EA4335?logo=gmail)](mailto:pranjal.gupta@dataxlr8.ai)
 
 ---
 
