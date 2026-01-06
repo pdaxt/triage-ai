@@ -41,7 +41,7 @@ router.post('/message', async (req: Request, res: Response, next: NextFunction) 
  */
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const conversation = conversationEngine.getConversation(req.params.id);
+    const conversation = await conversationEngine.getConversation(req.params.id);
     if (!conversation) {
       res.status(404).json({ error: 'Conversation not found' });
       return;

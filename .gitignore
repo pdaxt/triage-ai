@@ -45,8 +45,8 @@ packages/triage-engine/src/ats-engine.ts
 packages/triage-engine/src/clinical-rules.ts
 
 # API Service Implementation (proprietary)
-apps/api/src/services/conversation-engine.ts
-apps/api/src/services/triage-service.ts
+# apps/api/src/services/conversation-engine.ts  # Needed for deployment
+# apps/api/src/services/triage-service.ts
 
 # Turbo
 .turbo/
@@ -63,3 +63,4 @@ credentials.json
 
 # Project config (private)
 CLAUDE.md
+.env*.local
