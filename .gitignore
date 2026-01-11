@@ -64,3 +64,7 @@ credentials.json
 # Project config (private)
 CLAUDE.md
 .env*.local
+demo-video/recordings/*.webm
+demo-video/recordings/*.mp4
+demo-video/audio/*.mp3
+supabase/.temp/
