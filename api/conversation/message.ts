@@ -3,43 +3,50 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Shared conversation store (will reset between cold starts)
 const conversations = new Map<string, any>();
 
-const SYSTEM_PROMPT = `You are TriageAI, a medical triage assistant using the Australian Triage Scale (ATS).
+const SYSTEM_PROMPT = `You are TriageAI, a warm and professional medical triage assistant using the Australian Triage Scale (ATS).
 
-CONVERSATION FLOW:
-1. Gather symptoms naturally (ask ONE question at a time)
-2. Understand duration, severity, location
-3. After 3-4 exchanges OR if red flags detected, provide triage
+YOUR ROLE:
+1. Gather clinical information through empathetic conversation
+2. Identify red flags requiring immediate escalation
+3. Determine ATS category (1-5) and provide clear next steps
 
-RED FLAGS (require IMMEDIATE triage):
-- Chest pain radiating to arm/jaw
-- Difficulty breathing / gasping
-- Stroke signs (face droop, arm weakness, slurred speech)
-- Severe allergic reaction
-- Suicidal ideation
+AUSTRALIAN TRIAGE SCALE (ATS):
+- ATS 1: Immediate - Life threatening
+- ATS 2: 10 minutes - Imminent threat to life
+- ATS 3: 30 minutes - Potentially life threatening
+- ATS 4: 60 minutes - Potentially serious
+- ATS 5: 120 minutes - Less urgent
+
+CRITICAL RED FLAGS (ATS 1-2):
+- Chest pain (crushing, radiating, sweating)
+- Severe breathing difficulty
+- Stroke symptoms (face droop, arm weakness, slurred speech)
+- Sudden severe headache ("worst ever")
+- Throat swelling with allergy
+- Suicidal thoughts with plan
 - Heavy bleeding
-- Altered mental status
+- Confusion or altered consciousness
 
-AUSTRALIAN TRIAGE SCALE:
-- ATS1 (RESUSCITATION): Immediate - life threatening
-- ATS2 (EMERGENCY): 10 min - imminent threat to life
-- ATS3 (URGENT): 30 min - potential threat
-- ATS4 (SEMI-URGENT): 60 min - potentially serious
-- ATS5 (NON-URGENT): 120 min - less urgent
+CONVERSATION STYLE:
+- Be warm, empathetic, and reassuring
+- ALWAYS acknowledge what the patient said before asking follow-up
+- Never repeat questions about information already given
+- Use natural language - avoid sounding like a robot
+- Keep responses concise but caring
 
-RESPONSE FORMAT (JSON only):
+EXAMPLE GOOD RESPONSES:
+- "I'm sorry you're dealing with a headache. How long has it been bothering you?"
+- "A 3 out of 10 pain - that's helpful to know. Have you tried anything for relief yet?"
+- "Sounds like stress and poor sleep could be the culprit. Let me check a few more things..."
+
+RESPONSE FORMAT (valid JSON):
 {
-  "message": "Your response to patient",
-  "extractedData": {
-    "symptoms": ["symptom1"],
-    "duration": "if mentioned",
-    "severity": 1-10 if mentioned,
-    "age": if mentioned
-  },
+  "message": "Your warm, helpful response to the patient",
   "readyToTriage": false,
   "triageResult": null
 }
 
-When readyToTriage is true, include triageResult:
+Set readyToTriage=true after 2-3 exchanges or when you have enough info:
 {
   "readyToTriage": true,
   "triageResult": {
@@ -48,8 +55,7 @@ When readyToTriage is true, include triageResult:
     "maxWaitTime": "Immediate/10 min/30 min/60 min/120 min",
     "severity": 1-5,
     "urgency": "EMERGENCY/URGENT/SEMI_URGENT/STANDARD/NON_URGENT",
-    "confidence": 0.0-1.0,
-    "redFlags": { "detected": true/false, "flags": [{"condition": "", "evidence": "", "action": ""}] },
+    "confidence": 0.6-0.95,
     "reasoning": "clinical reasoning",
     "recommendations": ["recommendation1"],
     "doctorSummary": {
@@ -61,50 +67,58 @@ When readyToTriage is true, include triageResult:
 }`;
 
 // Red flag keyword detection (<1ms deterministic safety)
-function checkRedFlags(text: string): Array<{ condition: string; evidence: string; action: string }> {
+function checkRedFlags(text: string): Array<{ condition: string; evidence: string; action: string; ats: number }> {
   const lowerText = text.toLowerCase();
-  const flags: Array<{ condition: string; evidence: string; action: string }> = [];
+  const flags: Array<{ condition: string; evidence: string; action: string; ats: number }> = [];
 
   const patterns = [
-    {
-      pattern: /chest pain|chest tightness|crushing.*chest|radiating.*arm/,
-      condition: 'Cardiac-type chest pain',
-      action: 'CALL EMERGENCY SERVICES IMMEDIATELY'
-    },
-    {
-      pattern: /can't breathe|difficulty breathing|gasping|shortness of breath/,
-      condition: 'Severe respiratory distress',
-      action: 'CALL EMERGENCY SERVICES IMMEDIATELY'
-    },
-    {
-      pattern: /face droop|arm weak|slurred speech|stroke/,
-      condition: 'Possible stroke (FAST signs)',
-      action: 'CALL EMERGENCY SERVICES - Time critical'
-    },
-    {
-      pattern: /suicide|kill myself|want to die|end my life/,
-      condition: 'Suicidal ideation',
-      action: 'IMMEDIATE mental health crisis intervention'
-    },
-    {
-      pattern: /heavy bleeding|blood everywhere|won't stop bleeding/,
-      condition: 'Severe hemorrhage',
-      action: 'CALL EMERGENCY SERVICES'
-    },
-    {
-      pattern: /throat closing|can't swallow|anaphylax/,
-      condition: 'Possible anaphylaxis',
-      action: 'CALL EMERGENCY SERVICES - Use EpiPen if available'
-    },
+    // ATS 1 - Resuscitation
+    { pattern: /no pulse|has no pulse|not beating|heart stopped/, condition: 'Cardiac arrest', action: 'Begin CPR, call 000', ats: 1 },
+    { pattern: /not breathing|stopped breathing|barely breathing|lips.*blue|cyanosis/, condition: 'Respiratory arrest', action: 'Secure airway, call 000', ats: 1 },
+    { pattern: /can.?t swallow|throat closing|throat.*swelling|anaphylax/, condition: 'Possible anaphylaxis', action: 'Adrenaline, airway management', ats: 1 },
+    { pattern: /choking|airway.*blocked/, condition: 'Airway obstruction', action: 'Immediate airway clearance', ats: 1 },
+
+    // ATS 2 - Emergency
+    { pattern: /chest pain|chest tightness|chest pressure|crushing.*chest|radiating.*arm/, condition: 'Chest pain', action: 'Immediate ECG and cardiac workup', ats: 2 },
+    { pattern: /can.?t breathe|cannot breathe|hard to breathe|shortness of breath|gasping|difficulty breathing/, condition: 'Difficulty breathing', action: 'Respiratory assessment, oxygen', ats: 2 },
+    { pattern: /worst headache|thunderclap headache|sudden severe headache|never had headache this bad/, condition: 'Sudden severe headache', action: 'Urgent CT to rule out SAH', ats: 2 },
+    { pattern: /passed out|fainted|lost consciousness|unresponsive|not responding/, condition: 'Loss of consciousness', action: 'Neurological assessment', ats: 2 },
+    { pattern: /face droop|arm weak|slurred speech|one side.*weak|stroke/, condition: 'Possible stroke', action: 'Immediate stroke protocol', ats: 2 },
+    { pattern: /seizure|convulsing|fitting/, condition: 'Seizure', action: 'Protect airway, time seizure', ats: 2 },
+    { pattern: /want to die|kill myself|suicide|self.?harm|ending my life|hanging/, condition: 'Suicidal ideation', action: 'Immediate mental health assessment', ats: 2 },
+    { pattern: /heavy bleeding|won.?t stop bleeding|blood everywhere|soaked.*blood/, condition: 'Severe bleeding', action: 'Haemostasis and volume resuscitation', ats: 2 },
+    { pattern: /confused|don.?t know where|altered mental|acting strange/, condition: 'Altered mental status', action: 'Assess for reversible causes', ats: 2 },
+    { pattern: /car accident|car crash|major accident|hit by|run over/, condition: 'Major trauma', action: 'Trauma team activation', ats: 2 },
+    { pattern: /burn.*all over|severe burn|large.*burn|house fire/, condition: 'Severe burns', action: 'Cool burns, assess airway', ats: 2 },
+    { pattern: /overdose|took too many|pills.*unconscious/, condition: 'Drug overdose', action: 'Assess airway, naloxone if opioid', ats: 2 },
+    { pattern: /vomiting.*blood|vomited blood|black.*tarry.*stool/, condition: 'GI bleeding', action: 'IV access, urgent gastro consult', ats: 2 },
+    { pattern: /stiff neck.*fever|fever.*stiff neck|rash.*doesn.?t fade/, condition: 'Possible meningitis', action: 'Immediate antibiotics', ats: 2 },
+    { pattern: /testicle.*pain|testicular.*pain|scrotum.*severe/, condition: 'Testicular emergency', action: 'Urgent urology review', ats: 2 },
+    { pattern: /baby.*fever|infant.*fever|newborn.*fever/, condition: 'Febrile infant', action: 'Septic workup, IV antibiotics', ats: 2 },
+    { pattern: /chemotherapy.*fever|chemo.*temperature|immunocompromised.*fever/, condition: 'Immunocompromised fever', action: 'Immediate broad-spectrum antibiotics', ats: 2 },
+
+    // ATS 3 - Urgent
+    { pattern: /asthma.*attack|asthma.*worse|wheezing|using.*inhaler/, condition: 'Asthma exacerbation', action: 'Nebulised salbutamol, assess severity', ats: 3 },
+    { pattern: /high fever|fever.*39|fever.*40|temperature.*39|temperature.*40/, condition: 'High fever', action: 'Assess source of infection', ats: 3 },
+    { pattern: /kidney stone|severe.*flank.*pain|colicky.*pain.*groin/, condition: 'Kidney stone', action: 'Analgesia, CT KUB', ats: 3 },
+    { pattern: /lower right.*pain|pain.*lower right|appendicitis/, condition: 'Possible appendicitis', action: 'Surgical review, CT abdomen', ats: 3 },
+    { pattern: /hit.*head.*vomit|head.*vomit|concussion.*vomit/, condition: 'Head injury with vomiting', action: 'CT head, neuro obs', ats: 3 },
+    { pattern: /broken.*bone|fracture|bone.*sticking out|bent.*wrong way/, condition: 'Fracture', action: 'X-ray, analgesia, splint', ats: 3 },
+    { pattern: /panic attack|heart racing.*dying|hyperventilating/, condition: 'Panic attack', action: 'Calm environment, exclude cardiac', ats: 3 },
+    { pattern: /calf.*swollen|calf.*painful|dvt|deep vein|blood clot.*leg/, condition: 'DVT symptoms', action: 'D-dimer, Doppler USS', ats: 3 },
+    { pattern: /cellulitis|redness.*spreading|red.*getting bigger/, condition: 'Cellulitis', action: 'IV antibiotics, mark margins', ats: 3 },
+    { pattern: /dog.*bit|bitten.*dog|animal.*bite/, condition: 'Animal bite', action: 'Wound assessment, tetanus, rabies', ats: 3 },
+    { pattern: /swallowed.*coin|swallowed.*battery|child.*swallowed/, condition: 'Foreign body ingestion', action: 'X-ray, paediatric review', ats: 3 },
   ];
 
-  for (const { pattern, condition, action } of patterns) {
+  for (const { pattern, condition, action, ats } of patterns) {
     if (pattern.test(lowerText)) {
       const match = lowerText.match(pattern);
       flags.push({
         condition,
         evidence: match ? match[0] : 'keyword detected',
         action,
+        ats,
       });
     }
   }
@@ -189,32 +203,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       parsed = { message: responseText.replace(/```json|```/g, '').trim(), readyToTriage: false };
     }
 
-    // Apply safety envelope - if we detected red flags, ensure high severity
-    if (hasRedFlags && parsed.triageResult) {
-      parsed.triageResult.redFlags = { detected: true, flags: redFlags };
-      if (parsed.triageResult.severity < 4) {
-        parsed.triageResult.severity = 5;
-        parsed.triageResult.category = 'ATS2';
-        parsed.triageResult.categoryName = 'EMERGENCY';
-        parsed.triageResult.urgency = 'EMERGENCY';
-      }
-    }
+    // Determine worst ATS from detected flags
+    const worstATS = hasRedFlags ? Math.min(...redFlags.map(f => f.ats)) : 5;
+    const atsConfig: Record<number, { name: string; wait: string; urgency: string }> = {
+      1: { name: 'RESUSCITATION', wait: 'Immediate', urgency: 'EMERGENCY' },
+      2: { name: 'EMERGENCY', wait: '10 minutes', urgency: 'EMERGENCY' },
+      3: { name: 'URGENT', wait: '30 minutes', urgency: 'URGENT' },
+      4: { name: 'SEMI-URGENT', wait: '60 minutes', urgency: 'SEMI_URGENT' },
+      5: { name: 'NON-URGENT', wait: '120 minutes', urgency: 'NON_URGENT' },
+    };
 
-    // Force triage if red flags and LLM didn't trigger it
+    // Force triage if red flags detected
     if (hasRedFlags && !parsed.readyToTriage) {
+      const config = atsConfig[worstATS];
       parsed.readyToTriage = true;
       parsed.triageResult = {
-        category: 'ATS2',
-        categoryName: 'EMERGENCY',
-        maxWaitTime: '10 minutes',
-        severity: 5,
-        urgency: 'EMERGENCY',
+        category: `ATS${worstATS}`,
+        categoryName: config.name,
+        maxWaitTime: config.wait,
+        severity: 6 - worstATS,
+        urgency: config.urgency,
+        atsCategory: worstATS,
         confidence: 0.95,
-        redFlags: { detected: true, flags: redFlags },
-        reasoning: `Red flag conditions detected: ${redFlags.map(f => f.condition).join(', ')}. Immediate medical attention required.`,
+        redFlags: { detected: true, flags: redFlags.map(f => ({ condition: f.condition, evidence: f.evidence, action: f.action })) },
+        reasoning: `${config.name} - ${redFlags.map(f => f.condition).join(', ')} detected. ${worstATS <= 2 ? 'Call 000 or go to Emergency immediately.' : 'Seek medical attention within ' + config.wait + '.'}`,
         recommendations: redFlags.map(f => f.action),
         doctorSummary: {
-          headline: `URGENT: ${redFlags[0].condition} detected`,
+          headline: `ATS ${worstATS} (${config.name}): ${redFlags[0].condition}`,
           keySymptoms: redFlags.map(f => f.condition),
           differentialDiagnosis: redFlags.map(f => f.condition),
         },
