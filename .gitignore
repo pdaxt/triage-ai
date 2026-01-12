@@ -64,7 +64,16 @@ credentials.json
 # Project config (private)
 CLAUDE.md
 .env*.local
-demo-video/recordings/*.webm
-demo-video/recordings/*.mp4
-demo-video/audio/*.mp3
-supabase/.temp/
+.claude/
+
+# Demo video (proprietary)
+demo-video/
+
+# Tests (proprietary edge cases)
+tests/
+
+# Database schema (proprietary)
+supabase/
+
+# Test results (internal)
+docs/TEST_RESULTS.md
