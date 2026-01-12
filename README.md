@@ -2,10 +2,15 @@
 
 > **AI-Powered Patient Triage for Australian Healthcare** — Production-grade medical triage using the Australian Triage Scale (ATS) with hybrid deterministic guardrails and LLM reasoning.
 
+## 🚀 Try It Live
+
+**[→ Launch Demo](https://triage-ai-bay.vercel.app)** — No signup required. Test emergency and non-urgent cases.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18+-61DAFB.svg)](https://reactjs.org/)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen.svg)](https://triage-ai-bay.vercel.app)
 
 ---
 
