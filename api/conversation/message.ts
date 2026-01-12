@@ -251,6 +251,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         result: {
           severity: parsed.triageResult.severity,
           urgency: parsed.triageResult.urgency,
+          atsCategory: parsed.triageResult.atsCategory,
+          maxWaitTime: parsed.triageResult.maxWaitTime,
           confidence: parsed.triageResult.confidence,
           redFlags: parsed.triageResult.redFlags,
           specialtyMatch: ['Emergency Medicine'],
@@ -261,6 +263,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ...parsed.triageResult.doctorSummary,
           severity: parsed.triageResult.severity,
           urgency: parsed.triageResult.urgency,
+          atsCategory: parsed.triageResult.atsCategory,
+          maxWaitTime: parsed.triageResult.maxWaitTime,
           redFlags: parsed.triageResult.redFlags?.flags?.map((f: any) => f.condition) || [],
           relevantHistory: [],
           suggestedQuestions: ['What is the patient\'s medical history?'],
