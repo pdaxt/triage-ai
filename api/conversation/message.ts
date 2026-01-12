@@ -236,6 +236,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     }
 
+    // Normalize LLM triage result (when LLM decides readyToTriage without red flags)
+    if (parsed.readyToTriage && parsed.triageResult && !hasRedFlags) {
+      // Extract ATS category from various possible LLM response formats
+      let atsFromLLM = parsed.triageResult.atsCategory;
+      if (!atsFromLLM && parsed.triageResult.category) {
+        // Parse from "ATS4" or "ATS 4" format
+        const match = String(parsed.triageResult.category).match(/ATS\s*(\d)/i);
+        atsFromLLM = match ? parseInt(match[1]) : null;
+      }
+      if (!atsFromLLM && parsed.triageResult.severity) {
+        // Convert severity (1-5) to ATS (5-1)
+        atsFromLLM = 6 - parsed.triageResult.severity;
+      }
+      // Map urgency to ATS as fallback
+      if (!atsFromLLM && parsed.triageResult.urgency) {
+        const urgencyToATS: Record<string, number> = {
+          'EMERGENCY': 2, 'URGENT': 3, 'SEMI_URGENT': 4, 'SEMI-URGENT': 4, 'STANDARD': 4, 'NON_URGENT': 5, 'NON-URGENT': 5
+        };
+        atsFromLLM = urgencyToATS[parsed.triageResult.urgency] || 4;
+      }
+      // Default to ATS 4 (semi-urgent) if nothing found
+      const finalATS = atsFromLLM || 4;
+      const config = atsConfig[finalATS];
+
+      // Ensure all required fields are set
+      parsed.triageResult.atsCategory = finalATS;
+      parsed.triageResult.maxWaitTime = parsed.triageResult.maxWaitTime || config.wait;
+      parsed.triageResult.urgency = parsed.triageResult.urgency || config.urgency;
+      parsed.triageResult.severity = parsed.triageResult.severity || (6 - finalATS);
+      parsed.triageResult.confidence = parsed.triageResult.confidence || 0.7;
+      parsed.triageResult.redFlags = parsed.triageResult.redFlags || { detected: false, flags: [] };
+      parsed.triageResult.recommendations = parsed.triageResult.recommendations || ['Consult your healthcare provider'];
+    }
+
     // Store conversation
     conversation.messages.push({ role: 'assistant', content: parsed.message });
     conversations.set(conversationId, conversation);
