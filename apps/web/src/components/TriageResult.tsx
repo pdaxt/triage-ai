@@ -11,7 +11,18 @@ interface TriageResultProps {
 
 export function TriageResult({ result, onReset }: TriageResultProps) {
   const { result: triage, doctorSummary } = result;
-  const urgency = urgencyConfig[triage.urgency];
+
+  // Defensive handling for missing or invalid urgency
+  const urgencyKey = triage?.urgency || 'STANDARD';
+  const urgency = urgencyConfig[urgencyKey as keyof typeof urgencyConfig] || urgencyConfig.STANDARD;
+
+  // Defensive handling for missing fields
+  const severity = triage?.severity ?? 3;
+  const confidence = triage?.confidence ?? 0.5;
+  const redFlags = triage?.redFlags || { detected: false, flags: [] };
+  const specialtyMatch = triage?.specialtyMatch || [];
+  const reasoning = triage?.reasoning || 'Assessment complete.';
+  const recommendations = triage?.recommendations || ['Consult your healthcare provider'];
 
   return (
     <motion.div
@@ -20,8 +31,8 @@ export function TriageResult({ result, onReset }: TriageResultProps) {
       className="space-y-6 p-4 overflow-y-auto chat-scroll"
     >
       {/* Red Flags Alert - Most Prominent */}
-      {triage.redFlags.detected && (
-        <RedFlagAlert flags={triage.redFlags.flags} />
+      {redFlags.detected && redFlags.flags.length > 0 && (
+        <RedFlagAlert flags={redFlags.flags} />
       )}
 
       {/* Triage Assessment Card */}
@@ -41,19 +52,19 @@ export function TriageResult({ result, onReset }: TriageResultProps) {
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <div className="text-sm text-gray-500 mb-1">Severity</div>
             <div className="text-3xl font-bold text-gray-900">
-              {triage.severity}/5
+              {severity}/5
             </div>
             <div
               className={cn(
                 'inline-block mt-2 px-3 py-1 rounded-full text-sm font-medium',
-                triage.severity >= 4
+                severity >= 4
                   ? 'bg-red-100 text-red-700'
-                  : triage.severity >= 3
+                  : severity >= 3
                   ? 'bg-yellow-100 text-yellow-700'
                   : 'bg-green-100 text-green-700'
               )}
             >
-              {severityLabels[triage.severity]}
+              {severityLabels[severity] || 'Assessed'}
             </div>
           </div>
 
@@ -79,13 +90,13 @@ export function TriageResult({ result, onReset }: TriageResultProps) {
           <div className="flex justify-between text-sm mb-1">
             <span className="text-gray-500">Confidence</span>
             <span className="font-medium text-gray-700">
-              {Math.round(triage.confidence * 100)}%
+              {Math.round(confidence * 100)}%
             </span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${triage.confidence * 100}%` }}
+              animate={{ width: `${confidence * 100}%` }}
               transition={{ duration: 0.8, delay: 0.3 }}
               className="h-full bg-primary-500 rounded-full"
             />
@@ -93,13 +104,13 @@ export function TriageResult({ result, onReset }: TriageResultProps) {
         </div>
 
         {/* Recommended Specialties */}
-        {triage.specialtyMatch.length > 0 && (
+        {specialtyMatch.length > 0 && (
           <div className="mb-4">
             <h4 className="text-sm font-medium text-gray-700 mb-2">
               Recommended Specialties
             </h4>
             <div className="flex flex-wrap gap-2">
-              {triage.specialtyMatch.map((specialty) => (
+              {specialtyMatch.map((specialty) => (
                 <span
                   key={specialty}
                   className="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm font-medium"
@@ -117,18 +128,18 @@ export function TriageResult({ result, onReset }: TriageResultProps) {
             Assessment Reasoning
           </h4>
           <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-            {triage.reasoning}
+            {reasoning}
           </p>
         </div>
 
         {/* Recommendations */}
-        {triage.recommendations.length > 0 && (
+        {recommendations.length > 0 && (
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-2">
               Recommendations
             </h4>
             <ul className="space-y-2">
-              {triage.recommendations.map((rec, i) => (
+              {recommendations.map((rec, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
                   <svg
                     className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5"
