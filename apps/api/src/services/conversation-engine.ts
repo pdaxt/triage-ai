@@ -1,6 +1,6 @@
 import { conversationStore } from '../store/conversation-store.js';
 import { ConversationResponse, Conversation } from '../types.js';
-import { OllamaClient } from './ollama-client.js';
+import { llmClient } from './llm-client.js';
 
 /**
  * ConversationEngine - Core triage conversation handler
@@ -18,10 +18,9 @@ import { OllamaClient } from './ollama-client.js';
 const GREETING_MESSAGE = "Hi, I'm TriageAI, your virtual health assistant. I'm here to help understand your symptoms and guide you to the right care. What's bringing you in today?";
 
 export class ConversationEngine {
-  private client: OllamaClient;
-
   constructor() {
-    this.client = new OllamaClient();
+    // LLM client auto-detects provider (Ollama local, Gemini cloud, or Groq)
+    console.log(`[ConversationEngine] Using LLM provider: ${llmClient.getProvider()}`);
   }
 
   async startConversation(patientId?: string): Promise<ConversationResponse> {
