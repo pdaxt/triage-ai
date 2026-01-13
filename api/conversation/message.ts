@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkRateLimit } from '../lib/rate-limiter';
 
 // Shared conversation store (will reset between cold starts)
 const conversations = new Map<string, any>();
@@ -139,6 +140,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Rate limit: 30 messages per minute per IP
+  const allowed = await checkRateLimit(req, res, 'message');
+  if (!allowed) return;
 
   const { conversationId, message } = req.body;
 

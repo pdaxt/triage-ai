@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkRateLimit } from '../lib/rate-limiter';
 
 // In-memory store for serverless (will reset between cold starts - fine for demo)
 const conversations = new Map<string, any>();
@@ -18,6 +19,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Rate limit: 10 conversation starts per minute per IP
+  const allowed = await checkRateLimit(req, res, 'start');
+  if (!allowed) return;
 
   const conversationId = crypto.randomUUID();
 
