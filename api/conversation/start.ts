@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { randomUUID } from 'crypto';
 import { checkRateLimit } from '../lib/rate-limiter';
 
 // In-memory store for serverless (will reset between cold starts - fine for demo)
@@ -24,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const allowed = await checkRateLimit(req, res, 'start');
   if (!allowed) return;
 
-  const conversationId = crypto.randomUUID();
+  const conversationId = randomUUID();
 
   conversations.set(conversationId, {
     id: conversationId,
