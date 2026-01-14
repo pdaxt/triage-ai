@@ -265,6 +265,8 @@ export class ConversationEngine {
 
       // Communication impairment - if patient can't type, don't ask more questions
       'Communication impairment': { ats: 2, action: 'Patient unable to communicate - call 000 immediately, do not ask follow-up questions' },
+      'Paediatric emergency': { ats: 1, action: 'Immediate paediatric resuscitation - call 000, begin CPR if not breathing' },
+      'Violence/Safety concern': { ats: 2, action: 'Contact police (000) and ensure safety first, then address medical concerns' },
 
       // Additional ATS 2 conditions
       'GI bleeding': { ats: 2, action: 'IV access, type and cross, urgent gastro consult' },
@@ -798,6 +800,17 @@ Respond with ONLY this JSON:
 
       // Communication impairment with emergency - immediate escalation
       { pattern: /can.?t type|cannot type|unable to type|hard to type|difficult to type|can.?t communicate|cannot communicate/, flag: 'Communication impairment' },
+      { pattern: /can.?t speak|cannot speak|lost.*voice|mute|speech.*impaired/, flag: 'Communication impairment' },
+      { pattern: /deaf|blind|can.?t see|cannot see|can.?t hear|cannot hear/, flag: 'Communication impairment' },
+      { pattern: /don.?t speak english|no english|need.*translator|need.*interpreter|language barrier/, flag: 'Communication impairment' },
+
+      // Paediatric emergencies - immediate escalation
+      { pattern: /baby.*not breathing|infant.*blue|newborn.*limp|child.*unconscious|toddler.*choking/, flag: 'Paediatric emergency' },
+      { pattern: /baby.*choking|infant.*choking|child.*not breathing|kid.*not breathing/, flag: 'Paediatric emergency' },
+
+      // Violence/Safety - immediate escalation
+      { pattern: /being attacked|someone.*hurting|domestic violence|being abused|assault.*happening/, flag: 'Violence/Safety concern' },
+      { pattern: /attacker|intruder|break.*in|someone.*in.*house|stalker/, flag: 'Violence/Safety concern' },
     ];
 
     for (const { pattern, flag } of keywordPatterns) {
