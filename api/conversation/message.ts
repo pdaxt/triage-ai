@@ -277,11 +277,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const finalATS = atsFromLLM || 4;
       const config = atsConfig[finalATS];
 
-      // Ensure all required fields are set
+      // Ensure all required fields are set - ALWAYS calculate severity from ATS for consistency
       parsed.triageResult.atsCategory = finalATS;
       parsed.triageResult.maxWaitTime = parsed.triageResult.maxWaitTime || config.wait;
       parsed.triageResult.urgency = parsed.triageResult.urgency || config.urgency;
-      parsed.triageResult.severity = parsed.triageResult.severity || (6 - finalATS);
+      parsed.triageResult.severity = 6 - finalATS; // Always override LLM's severity with ATS-based calculation
       parsed.triageResult.confidence = parsed.triageResult.confidence || 0.7;
       parsed.triageResult.redFlags = parsed.triageResult.redFlags || { detected: false, flags: [] };
       parsed.triageResult.recommendations = parsed.triageResult.recommendations || ['Consult your healthcare provider'];
