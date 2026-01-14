@@ -221,27 +221,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       5: { name: 'NON-URGENT', wait: '120 minutes', urgency: 'NON_URGENT' },
     };
 
-    // Force triage if red flags detected
-    if (hasRedFlags && !parsed.readyToTriage) {
+    // Force triage if red flags detected (whether or not LLM decided to triage)
+    if (hasRedFlags) {
       const config = atsConfig[worstATS];
-      parsed.readyToTriage = true;
-      parsed.triageResult = {
+      // Override or create triage result with deterministic red-flag-based severity
+      const redFlagTriage = {
         category: `ATS${worstATS}`,
         categoryName: config.name,
         maxWaitTime: config.wait,
-        severity: 6 - worstATS,
+        severity: 6 - worstATS, // ATS 2 -> severity 4 (Severe)
         urgency: config.urgency,
         atsCategory: worstATS,
         confidence: 0.95,
         redFlags: { detected: true, flags: redFlags.map(f => ({ condition: f.condition, evidence: f.evidence, action: f.action })) },
         reasoning: `${config.name} - ${redFlags.map(f => f.condition).join(', ')} detected. ${worstATS <= 2 ? 'Call 000 or go to Emergency immediately.' : 'Seek medical attention within ' + config.wait + '.'}`,
         recommendations: redFlags.map(f => f.action),
-        doctorSummary: {
+        doctorSummary: parsed.triageResult?.doctorSummary || {
           headline: `ATS ${worstATS} (${config.name}): ${redFlags[0].condition}`,
           keySymptoms: redFlags.map(f => f.condition),
           differentialDiagnosis: redFlags.map(f => f.condition),
         },
       };
+      // Merge LLM's doctorSummary details if available
+      if (parsed.triageResult?.doctorSummary) {
+        redFlagTriage.doctorSummary = {
+          ...parsed.triageResult.doctorSummary,
+          // But ensure red flags are always included
+        };
+      }
+      parsed.readyToTriage = true;
+      parsed.triageResult = redFlagTriage;
     }
 
     // Normalize LLM triage result (when LLM decides readyToTriage without red flags)
