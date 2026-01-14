@@ -20,7 +20,10 @@ async function initUpstash(): Promise<boolean> {
   upstashInitialized = true;
 
   // Check if env vars are set
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+
+  if (!redisUrl || !redisToken) {
     console.log('[Rate Limiter] Upstash env vars not set, using in-memory fallback');
     return false;
   }
@@ -31,8 +34,8 @@ async function initUpstash(): Promise<boolean> {
     const { Ratelimit } = await import('@upstash/ratelimit');
 
     redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      url: redisUrl,
+      token: redisToken,
     });
 
     rateLimiters = {
