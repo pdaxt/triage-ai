@@ -80,7 +80,7 @@ function checkRedFlags(text: string): Array<{ condition: string; evidence: strin
     { pattern: /choking|airway.*blocked/, condition: 'Airway obstruction', action: 'Immediate airway clearance', ats: 1 },
 
     // ATS 2 - Emergency
-    { pattern: /chest pain|chest tightness|chest pressure|crushing.*chest|radiating.*arm/, condition: 'Chest pain', action: 'Immediate ECG and cardiac workup', ats: 2 },
+    { pattern: /chest pain|chest tightness|chest pressure|crushing.*chest|radiating.*arm|heart attack|having.*heart attack|think.*heart attack|mi\b|myocardial/, condition: 'Chest pain', action: 'Immediate ECG and cardiac workup', ats: 2 },
     { pattern: /can.?t breathe|cannot breathe|hard to breathe|shortness of breath|gasping|difficulty breathing/, condition: 'Difficulty breathing', action: 'Respiratory assessment, oxygen', ats: 2 },
     { pattern: /worst headache|thunderclap headache|sudden severe headache|never had headache this bad/, condition: 'Sudden severe headache', action: 'Urgent CT to rule out SAH', ats: 2 },
     { pattern: /passed out|fainted|lost consciousness|unresponsive|not responding/, condition: 'Loss of consciousness', action: 'Neurological assessment', ats: 2 },
@@ -97,6 +97,9 @@ function checkRedFlags(text: string): Array<{ condition: string; evidence: strin
     { pattern: /testicle.*pain|testicular.*pain|scrotum.*severe/, condition: 'Testicular emergency', action: 'Urgent urology review', ats: 2 },
     { pattern: /baby.*fever|infant.*fever|newborn.*fever/, condition: 'Febrile infant', action: 'Septic workup, IV antibiotics', ats: 2 },
     { pattern: /chemotherapy.*fever|chemo.*temperature|immunocompromised.*fever/, condition: 'Immunocompromised fever', action: 'Immediate broad-spectrum antibiotics', ats: 2 },
+    { pattern: /can.?t type|cannot type|unable to type|hard to type|can.?t communicate|cannot communicate/, condition: 'Communication impairment', action: 'Patient unable to communicate - call 000 immediately', ats: 2 },
+    { pattern: /baby.*not breathing|infant.*blue|newborn.*limp|child.*unconscious|toddler.*choking|baby.*choking|infant.*choking/, condition: 'Paediatric emergency', action: 'Immediate paediatric resuscitation - call 000', ats: 1 },
+    { pattern: /being attacked|someone.*hurting|domestic violence|being abused|assault.*happening/, condition: 'Violence/Safety concern', action: 'Contact police (000) and ensure safety first', ats: 2 },
 
     // ATS 3 - Urgent
     { pattern: /asthma.*attack|asthma.*worse|wheezing|using.*inhaler/, condition: 'Asthma exacerbation', action: 'Nebulised salbutamol, assess severity', ats: 3 },
