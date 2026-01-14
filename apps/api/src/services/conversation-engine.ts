@@ -73,6 +73,13 @@ CONVERSATION STYLE:
 - Use natural language - avoid sounding like a robot
 - Keep responses concise but caring
 
+CRITICAL INTERFACE CONSTRAINT:
+- You are in a TEXT-ONLY chat interface
+- NEVER ask users to nod, shake head, blink, wave, or make any physical gesture
+- NEVER assume camera, video, or voice input is available
+- If a user says they cannot type, DO NOT ask follow-up questions - escalate immediately
+- Always phrase questions so they can be answered with typed text
+
 EXAMPLE GOOD RESPONSES:
 - "I'm sorry you're dealing with a headache. How long has it been bothering you?"
 - "A 3 out of 10 pain - that's helpful to know. Have you tried anything for relief yet?"
@@ -255,6 +262,9 @@ export class ConversationEngine {
       'Drug overdose': { ats: 2, action: 'Assess airway, naloxone if opioid suspected' },
       'Poisoning': { ats: 2, action: 'Contact Poisons Information Centre 13 11 26' },
       'Collapse': { ats: 2, action: 'Full assessment, ECG, bloods' },
+
+      // Communication impairment - if patient can't type, don't ask more questions
+      'Communication impairment': { ats: 2, action: 'Patient unable to communicate - call 000 immediately, do not ask follow-up questions' },
 
       // Additional ATS 2 conditions
       'GI bleeding': { ats: 2, action: 'IV access, type and cross, urgent gastro consult' },
@@ -785,6 +795,9 @@ Respond with ONLY this JSON:
       { pattern: /might be pregnant.*cramp|pregnant.*cramp|could be pregnant.*pain|possible pregnancy.*bleeding/, flag: 'Possible ectopic' },
       { pattern: /dog.*bit|bitten.*dog|bitten.*cat|animal.*bite|stray.*bit|rabies/, flag: 'Animal bite' },
       { pattern: /swallowed.*coin|swallowed.*battery|child.*swallowed|toddler.*swallowed|swallowed.*object|swallowed.*magnet/, flag: 'Foreign body ingestion' },
+
+      // Communication impairment with emergency - immediate escalation
+      { pattern: /can.?t type|cannot type|unable to type|hard to type|difficult to type|can.?t communicate|cannot communicate/, flag: 'Communication impairment' },
     ];
 
     for (const { pattern, flag } of keywordPatterns) {
